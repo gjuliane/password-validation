@@ -5,9 +5,13 @@
 */
 
 // http://blog.stevenlevithan.com/archives/javascript-password-validator
+//Modificado y extendido para TypeScript por @gjuliane
 
-console.log('TEST');
-
+/**
+ * Interface for store regular expresions 
+ * that will be used to check neededs characters
+ * depending of size specified by user and existence of it
+ */
 interface RegExps {
 	lower:   RegExp,
 	upper:   RegExp,
@@ -16,23 +20,28 @@ interface RegExps {
 	special: RegExp
 }
 
+/**
+ * Options configurations to check the password
+ */
 interface Options {
-	lower:    number,
-	upper:    number,
-	alpha:    number, /* lower + upper */
-	numeric:  number,
-	special:  number,
-	length:   [number, number],
+	lower:    number, // zero for not check or the size for uccurrences of lowers
+	upper:    number, // zero for not check or the size for uccurrences of uppers
+	alpha:    number, /* lower + upper */ // zero for not check or the size for uccurrences of alphas
+	numeric:  number, // zero for not check or the size for uccurrences of uppers
+	special:  number, // zero for not check or the size for uccurrences of non words it means symbols
+	length:   [number, number], // min, max limitation
 	//custom?:   [ /* regexes and/or functions */ ],
-	badWords: string[],
-	badSequenceLength: number,
-	noQwertySequences: boolean,
-	noSequential: boolean
+	badWords: string[], // array of string for incorrect words
+	badSequenceLength: number, // size limit of incorrect sequences 
+	noQwertySequences: boolean, // activate or not qwerty ckecks
+	noSequential: boolean // to check secuentials harcoded to 2 characters
 }
-
+/**
+ * Interface to store the test result
+ */
 interface Result {
-	valid: boolean;
-	message: string[];
+	valid: boolean;	// Valid or not
+	message: string[]; // In case of password is incorrect
 }
 
 function validatePassword (pw: string, options: Options): Result {
@@ -55,7 +64,7 @@ function validatePassword (pw: string, options: Options): Result {
 	
 	let property: keyof Options;
 	for (property in options) {
-		o = {...o, [property]: options[property]};
+		o = {...o, [property]: options[property]}; //destructuring the user options
 	}
 
 	let	re: RegExps = {
@@ -64,7 +73,8 @@ function validatePassword (pw: string, options: Options): Result {
 			alpha:   /[A-Z]/gi,
 			numeric: /[0-9]/g,
 			special: /[\W_]/g
-		}, i;
+		}
+	let i: number;
 
 	// enforce min/max length
 	if (pw.length < o.length[0] || pw.length > o.length[1]) {
@@ -94,9 +104,14 @@ function validatePassword (pw: string, options: Options): Result {
 	}
 
 	// enforce the no sequential, identical characters rule
-	if (o.noSequential && /([\S\s])\2/.test(pw)) {
+	if (o.noSequential && /([\S\s])\1{2}/gd.test(pw)) {
+		const noSeqResult = pw.match(/([\S\s])\1{2}/)
 		result.valid = false;
-		result.message.push(`Contiene una secuencia identica no permitida`);
+		if (noSeqResult != null) {
+			result.message.push(`Contiene una secuencia identica no permitida "${noSeqResult[0]}"`);
+		} else {
+			result.message.push(`Contiene una secuencia identica no permitida`);
+		}
 		return result;
 	}
 
@@ -108,22 +123,25 @@ function validatePassword (pw: string, options: Options): Result {
 			upperReverse   = lowerReverse.toUpperCase(),
 			numbers = "0123456789",
 			numbersReverse = numbers.split("").reverse().join(""),
-			// qwerty  = "qwertyuiopasdfghjklzxcvbnm",
+			qwerty  = "qwertyuiopasdfghjklñzxcvbnm",
+			toLower = lower+lowerReverse,
 			start   = o.badSequenceLength - 1,
 			seq     = "_" + pw.slice(0, start);
 		for (i = start; i < pw.length; i++) {
 			seq = seq.slice(1) + pw.charAt(i);
+			let seqName = "";
 			if (
-				lower.indexOf(seq)   > -1 ||
-				upper.indexOf(seq)   > -1 ||
-				numbers.indexOf(seq) > -1 ||
-				lowerReverse.indexOf(seq) > -1 ||
-				upperReverse.indexOf(seq) > -1 ||
-				numbersReverse.indexOf(seq) > -1
-				// || (o.noQwertySequences && qwerty.indexOf(seq) > -1)
+				lower.indexOf(seq)   > -1 && (seqName='lower')=="lower" ||
+				upper.indexOf(seq)   > -1 && (seqName='upper')=="upper" ||
+				numbers.indexOf(seq) > -1 && (seqName='numbers')=="numbers" ||
+				lowerReverse.indexOf(seq) > -1 && (seqName='lowerReverse')=="lowerReverse" ||
+				upperReverse.indexOf(seq) > -1 && (seqName='upperReverse')=="upperReverse" ||
+				numbersReverse.indexOf(seq) > -1 && (seqName='numbersReverse')=="numbersReverse" ||
+				(o.noQwertySequences && qwerty.indexOf(seq) > -1 && (seqName='qwerty')=="qwerty") ||
+				toLower.indexOf(seq.toLowerCase()) > -1 &&( seqName='toLower')=="toLower"
 			) {
 				result.valid = false;
-				result.message.push(`Contiene una secuencia no permitida ${seq}`);
+				result.message.push(`Contiene una secuencia no permitida ${seqName} ${seq}`);
 				return result;
 			}
 		}
@@ -141,7 +159,7 @@ function validatePassword (pw: string, options: Options): Result {
 	// 	}
 	// }
 
-	// great success!
+	// Here we are, password valid
 	return result;
 }
 
@@ -157,22 +175,40 @@ var passed = validatePassword(password, {
 	badSequenceLength: 4
 });
 */
-let password = "20222016098702abcC";
+// let password = "11baaa2ab0022201609802bcCInteraBancoinercamqwe";
+let userName = 'UTAPIA';
+let passwords: string[] = [
+	'aaa',
+	'N3wBl00d13#',
+	'password',
+	'Intercam1#',
+	'abCddsadkjklj',
+	'2022Ab$988765',
+	'',
+	'qwertyuio',
+	'0123456789',
+	'0987654321',
+	'889900665544433',
+	'1ntercam#1',
+	'12utapia)($$%%%',
+	'_´+{ ewewdfs'
+];
+let badWords = ["password", "Intercam", "bolsa"];
+badWords.push(userName);
 //let password = "Intercam123";
-let passed = validatePassword(password, {
-	lower: 0,
-	upper: 0,
-	alpha: 0,
-	numeric: 0,
-	special: 0,
-	length:   [6, Infinity],
-	noQwertySequences: true,
-	noSequential:     true,
-	badSequenceLength: 3,
-	badWords: ["password", "Intercam", "bolsa"]
+
+passwords.forEach(password => {
+	let passed = validatePassword(password, {
+		lower: 0,
+		upper: 0,
+		alpha: 0,
+		numeric: 0,
+		special: 0,
+		length:   [8, 256],
+		noQwertySequences: true,
+		noSequential:     true,
+		badSequenceLength: 3,
+		badWords: badWords
+	});
+	console.log(password,'\t',passed.valid, passed.message.join(" "));
 });
-
-
-
-// document.getElementById("test").innerHTML = passed;
-console.log(passed.valid, passed.message.join(" "));

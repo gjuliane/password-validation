@@ -4,8 +4,6 @@
     (c) 2007 Steven Levithan <stevenlevithan.com>
     MIT License
 */
-// http://blog.stevenlevithan.com/archives/javascript-password-validator
-console.log('TEST');
 function validatePassword(pw, options) {
     // default options (allows any password)
     let o = {
@@ -24,7 +22,7 @@ function validatePassword(pw, options) {
     let result = { message: [], valid: true };
     let property;
     for (property in options) {
-        o = Object.assign(Object.assign({}, o), { [property]: options[property] });
+        o = Object.assign(Object.assign({}, o), { [property]: options[property] }); //destructuring the user options
     }
     let re = {
         lower: /[a-z]/g,
@@ -32,7 +30,8 @@ function validatePassword(pw, options) {
         alpha: /[A-Z]/gi,
         numeric: /[0-9]/g,
         special: /[\W_]/g
-    }, i;
+    };
+    let i;
     // enforce min/max length
     if (pw.length < o.length[0] || pw.length > o.length[1]) {
         result.valid = false;
@@ -58,28 +57,33 @@ function validatePassword(pw, options) {
         }
     }
     // enforce the no sequential, identical characters rule
-    if (o.noSequential && /([\S\s])\2/.test(pw)) {
+    if (o.noSequential && /([\S\s])\1{2}/gd.test(pw)) {
+        const noSeqResult = pw.match(/([\S\s])\1{2}/);
         result.valid = false;
-        result.message.push(`Contiene una secuencia identica no permitida`);
+        if (noSeqResult != null) {
+            result.message.push(`Contiene una secuencia identica no permitida "${noSeqResult[0]}"`);
+        }
+        else {
+            result.message.push(`Contiene una secuencia identica no permitida`);
+        }
         return result;
     }
     // enforce alphanumeric/qwerty sequence ban rules
     if (o.badSequenceLength) {
-        let lower = "abcdefghijklmnñopqrstuvwxyz", lowerReverse = lower.split("").reverse().join(""), upper = lower.toUpperCase(), upperReverse = lowerReverse.toUpperCase(), numbers = "0123456789", numbersReverse = numbers.split("").reverse().join(""), 
-        // qwerty  = "qwertyuiopasdfghjklzxcvbnm",
-        start = o.badSequenceLength - 1, seq = "_" + pw.slice(0, start);
+        let lower = "abcdefghijklmnñopqrstuvwxyz", lowerReverse = lower.split("").reverse().join(""), upper = lower.toUpperCase(), upperReverse = lowerReverse.toUpperCase(), numbers = "0123456789", numbersReverse = numbers.split("").reverse().join(""), qwerty = "qwertyuiopasdfghjklñzxcvbnm", toLower = lower + lowerReverse, start = o.badSequenceLength - 1, seq = "_" + pw.slice(0, start);
         for (i = start; i < pw.length; i++) {
             seq = seq.slice(1) + pw.charAt(i);
-            if (lower.indexOf(seq) > -1 ||
-                upper.indexOf(seq) > -1 ||
-                numbers.indexOf(seq) > -1 ||
-                lowerReverse.indexOf(seq) > -1 ||
-                upperReverse.indexOf(seq) > -1 ||
-                numbersReverse.indexOf(seq) > -1
-            // || (o.noQwertySequences && qwerty.indexOf(seq) > -1)
-            ) {
+            let seqName = "";
+            if (lower.indexOf(seq) > -1 && (seqName = 'lower') == "lower" ||
+                upper.indexOf(seq) > -1 && (seqName = 'upper') == "upper" ||
+                numbers.indexOf(seq) > -1 && (seqName = 'numbers') == "numbers" ||
+                lowerReverse.indexOf(seq) > -1 && (seqName = 'lowerReverse') == "lowerReverse" ||
+                upperReverse.indexOf(seq) > -1 && (seqName = 'upperReverse') == "upperReverse" ||
+                numbersReverse.indexOf(seq) > -1 && (seqName = 'numbersReverse') == "numbersReverse" ||
+                (o.noQwertySequences && qwerty.indexOf(seq) > -1 && (seqName = 'qwerty') == "qwerty") ||
+                toLower.indexOf(seq.toLowerCase()) > -1 && (seqName = 'toLower') == "toLower") {
                 result.valid = false;
-                result.message.push(`Contiene una secuencia no permitida ${seq}`);
+                result.message.push(`Contiene una secuencia no permitida ${seqName} ${seq}`);
                 return result;
             }
         }
@@ -95,7 +99,7 @@ function validatePassword(pw, options) {
     // 			return false;
     // 	}
     // }
-    // great success!
+    // Here we are, password valid
     return result;
 }
 // let password = "0609702abc";
@@ -110,20 +114,40 @@ var passed = validatePassword(password, {
     badSequenceLength: 4
 });
 */
-let password = "20222016098702abcC";
+// let password = "11baaa2ab0022201609802bcCInteraBancoinercamqwe";
+let userName = 'UTAPIA';
+let passwords = [
+    'aaa',
+    'N3wBl00d13#',
+    'password',
+    'Intercam1#',
+    'abCddsadkjklj',
+    '2022Ab$988765',
+    '',
+    'qwertyuio',
+    '0123456789',
+    '0987654321',
+    '889900665544433',
+    '1ntercam#1',
+    '12utapia)($$%%%',
+    '_´+{ ewewdfs'
+];
+let badWords = ["password", "Intercam", "bolsa"];
+badWords.push(userName);
 //let password = "Intercam123";
-let passed = validatePassword(password, {
-    lower: 0,
-    upper: 0,
-    alpha: 0,
-    numeric: 0,
-    special: 0,
-    length: [6, Infinity],
-    noQwertySequences: true,
-    noSequential: true,
-    badSequenceLength: 3,
-    badWords: ["password", "Intercam", "bolsa"]
+passwords.forEach(password => {
+    let passed = validatePassword(password, {
+        lower: 0,
+        upper: 0,
+        alpha: 0,
+        numeric: 0,
+        special: 0,
+        length: [8, 256],
+        noQwertySequences: true,
+        noSequential: true,
+        badSequenceLength: 3,
+        badWords: badWords
+    });
+    console.log(password, '\t', passed.valid, passed.message.join(" "));
 });
-// document.getElementById("test").innerHTML = passed;
-console.log(passed.valid, passed.message.join(" "));
 //# sourceMappingURL=index.js.map
